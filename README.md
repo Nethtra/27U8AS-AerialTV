@@ -1,6 +1,6 @@
 # Aerial 电视桌面 · 从零部署指南 适用于27U8A-S 27U8APro-S 32C3APro
 
-![Aerial-主页截图-2026-11-05](assets\Aerial-主页截图-2026-11-05.png)
+![Aerial-主页截图-2026-11-05](assets/Aerial-主页截图-2026-11-05.png)
 
 前言：27U8A-S 27U8APro-S 32C3APro都是同一个型号换壳，因为查看工厂型号和Netflix认证都是C3APro，此系列是有国产系统和GoogleTV双系统的，买到手时默认国产广告系统，关于如何切换GoogleTV，见[BDFLR/TCL-C3A-Pro-Google-TV: 本指南旨在帮助用户将 TCL C3A Pro 显示器从智能娱乐系统切换至 Google TV 系统](https://github.com/BDFLR/TCL-C3A-Pro-Google-TV)
 
