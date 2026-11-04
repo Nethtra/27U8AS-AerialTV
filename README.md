@@ -2,6 +2,8 @@
 
 前言：27U8A-S 27U8APro-S 32C3APro都是同一个型号换壳，因为查看工厂型号和Netflix认证都是C3APro，此系列是有国产系统和GoogleTV双系统的，买到手时默认国产广告系统，关于如何切换GoogleTV，见[BDFLR/TCL-C3A-Pro-Google-TV: 本指南旨在帮助用户将 TCL C3A Pro 显示器从智能娱乐系统切换至 Google TV 系统](https://github.com/BDFLR/TCL-C3A-Pro-Google-TV)
 
+GoogleTV的引导页面强制联网，如果你没有网络环境或者不会让电视使用，那就不要切换了
+
 理论上不切换GoogleTV也能部署Aerial桌面，目的都是先找到adb
 
 主要思路是安装adb tv这个app（如果你是GoogleTV的话，Google Play就有这个app，评分4.7），第一次进它的引导界面会拉起隐藏的开发者选项，里面开启无线adb调试（经我实测网上说的tcl上下左右、连按7次版本号在27u8a-s上都不能打开开发者选项，tcl太狗了直接藏起来了，并且即使打开了每次调试端口都会跳，但是跳端口ai有办法解决），如果你是原生国产系统，可以u盘安装或者使用”超级大屏“小程序推送，前提是先找到adb tv的安装包，或者用Projectivy Launcher这个app[spocky/miproja1](https://github.com/spocky/miproja1)，里面有个tools页面会有adb tv的安装包，这个app还有一个功能是打开隐藏设置，但是我试了打不开。然后开了adb让agent连接就可以了，然后我让agent写了个小应用，用于直接进入开发者选项，这样就不会担心以后不能再访问失去控制了，后面就可以照着Aerial的readme继续搞其他的。
