@@ -1,5 +1,9 @@
 # Aerial 电视桌面 · 从零部署指南
 
+27U8A-S 27U8APro-S 32C3APro都是同一个型号换壳，此系列是有国产系统和GoogleTV双系统的，关于如何切换GoogleTV，见[BDFLR/TCL-C3A-Pro-Google-TV: 本指南旨在帮助用户将 TCL C3A Pro 显示器从智能娱乐系统切换至 Google TV 系统](https://github.com/BDFLR/TCL-C3A-Pro-Google-TV)理论上不切换GoogleTV也能部署Aerial桌面，目的都是先找到adb
+
+以下内容是部署完成后AI总结的，主要思路是安装adb tv这个app（如果你是GoogleTV的话，Google Play就有这个app，评分4.7），它的引导界面会拉起隐藏的开发者选项，里面开启无线adb调试（经我实测网上的tcl上下左右、连按7次版本号都不能打开开发者选项，tcl太狗了直接藏起来了），如果你是原生国产系统，可以u盘安装或者使用”超级大屏“小程序推送，前提是先找到adb tv的安装包，这个我不知道在哪，然后让agent连接就可以了，然后我让agent写了个小应用，用于直接进入开发者选项，这样就不会担心以后不能再访问了，后面就可以照着Aerial的readme继续搞其他的。
+
 > 面向：没碰过 Android 调试、也没写过 Android 代码的人
 > 对照版本：官方文档 **Aerial v1.52**（2026-10-26 整理）｜实机验证 **v1.69**（2026-10-29）
 > 适用环境：Windows 10/11 电脑 + 一台国产 Android 电视（小米、TCL、创维、索尼、海信、盒子、投影仪等）
@@ -1530,6 +1534,40 @@ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 两条都满足才能停用。否则 TV 上会没有可用桌面，只能靠 ADB 救。
 
 停用后必须复验：按 HOME → `dumpsys window | grep mCurrentFocus` 应仍是 `app.orchard.tv`，且 `logcat -b crash` 无新增。
+
+**⚠️ Google TV 上还有一个连带隐患：`setupwraith` 会抢 Home**
+
+停用原桌面后，设置向导 `com.google.android.tungsten.setupwraith` 就成了**优先级最高的 HOME 候选**。本机实测：
+
+```
+停用 launcherx 之前 / 之后，HOME 候选的 priority：
+  com.google.android.tungsten.setupwraith/.RecoveryActivity   priority=1    ← 压过 Aerial
+  app.orchard.tv/.MainActivity                                priority=0
+  com.realtek.systemservice/.fallbackhome.FallbackHome        priority=-999
+  com.android.tv.settings/.system.FallbackHome                priority=-1000
+```
+
+role 还在时看不出问题（按主页键照样进 Aerial）。但只要 role 一丢——系统重置、Aerial 重装、`remove-role-holder`——**抢到 Home 的就是它，而且它拿到 Home 会崩溃循环**。这是社区踩过的坑（CleanYourTV 的 README 里有专门一条）。
+
+处理：
+
+```powershell
+# 1. 先查 Wi-Fi 归属 —— 这一步不能省
+adb shell "dumpsys wifi | grep -o 'cname=[^ ]*'"
+
+# 2a. 输出里出现 com.google.android.tungsten.setupwraith → 别急着禁
+#     说明 Wi-Fi 是设置向导保存的，禁用它会把网络配置一起删掉。
+#     先在电视上手动重连一次 Wi-Fi，再回来做第 1 步。
+
+# 2b. 输出是 android.uid.system:1000（本机就是）→ 安全，继续
+
+# 3. 禁用
+adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
+```
+
+**代价**：以后想重跑电视的初始设置向导会进不去（但电视已经配好了，日常无影响），`pm enable` 可恢复。
+
+禁用后 HOME 候选会降到 3 个，Aerial 是正优先级里唯一的，这才算真正干净。
 
 **可以删（TCL 内容服务，Google TV 侧完全用不到）**
 
