@@ -1,14 +1,17 @@
-# Aerial 电视桌面 · 从零部署指南
+# Aerial 电视桌面 · 从零部署指南27U8A-S 27U8APro-S 32C3APro
 
-27U8A-S 27U8APro-S 32C3APro都是同一个型号换壳，此系列是有国产系统和GoogleTV双系统的，关于如何切换GoogleTV，见[BDFLR/TCL-C3A-Pro-Google-TV: 本指南旨在帮助用户将 TCL C3A Pro 显示器从智能娱乐系统切换至 Google TV 系统](https://github.com/BDFLR/TCL-C3A-Pro-Google-TV)理论上不切换GoogleTV也能部署Aerial桌面，目的都是先找到adb
+前言：27U8A-S 27U8APro-S 32C3APro都是同一个型号换壳，此系列是有国产系统和GoogleTV双系统的，关于如何切换GoogleTV，见[BDFLR/TCL-C3A-Pro-Google-TV: 本指南旨在帮助用户将 TCL C3A Pro 显示器从智能娱乐系统切换至 Google TV 系统](https://github.com/BDFLR/TCL-C3A-Pro-Google-TV)
 
-以下内容是部署完成后AI总结的，主要思路是安装adb tv这个app（如果你是GoogleTV的话，Google Play就有这个app，评分4.7），它的引导界面会拉起隐藏的开发者选项，里面开启无线adb调试（经我实测网上的tcl上下左右、连按7次版本号都不能打开开发者选项，tcl太狗了直接藏起来了），如果你是原生国产系统，可以u盘安装或者使用”超级大屏“小程序推送，前提是先找到adb tv的安装包，这个我不知道在哪，然后让agent连接就可以了，然后我让agent写了个小应用，用于直接进入开发者选项，这样就不会担心以后不能再访问了，后面就可以照着Aerial的readme继续搞其他的。
+理论上不切换GoogleTV也能部署Aerial桌面，目的都是先找到adb
 
-> 面向：没碰过 Android 调试、也没写过 Android 代码的人
+主要思路是安装adb tv这个app（如果你是GoogleTV的话，Google Play就有这个app，评分4.7），第一次进它的引导界面会拉起隐藏的开发者选项，里面开启无线adb调试（经我实测网上说的tcl上下左右、连按7次版本号在27u8a-s上都不能打开开发者选项，tcl太狗了直接藏起来了），如果你是原生国产系统，可以u盘安装或者使用”超级大屏“小程序推送，前提是先找到adb tv的安装包，或者用Projectivy Launcher这个app[spocky/miproja1](https://github.com/spocky/miproja1)，里面的tools会有adb tv的安装包，这个app还有一个功能是打开隐藏设置，但是我试了打不开。然后让agent连接就可以了，然后我让agent写了个小应用，用于直接进入开发者选项，这样就不会担心以后不能再访问了，后面就可以照着Aerial的readme继续搞其他的。
+
+以下内容基本是部署完成后AI总结的
+
 > 对照版本：官方文档 **Aerial v1.52**（2026-10-26 整理）｜实机验证 **v1.69**（2026-10-29）
-> 适用环境：Windows 10/11 电脑 + 一台国产 Android 电视（小米、TCL、创维、索尼、海信、盒子、投影仪等）
+> 环境：Windows 10/11 电脑 + 27U8A-S
 > 阅读顺序：第一、二章别跳过，它们决定了你后面会不会白折腾。
-> 文档状态：已含 **雷鸟 27U8A-S（Google TV 侧）全程实机验证**，见 6.10；附录 **8.5** 附自编译 TV 快捷方式 App 的完整工具链，**8.6** 是第二个实例（无障碍入口）+ 预装应用精简。
+> 文档状态：已含 **雷鸟 27U8A-S（Google TV ）全程实机验证**，见 6.9；附录 **8.5** 附自编译 TV 快捷方式 App 的完整工具链，**8.6** 是第二个实例（无障碍入口）+ 预装应用精简。
 
 ---
 
@@ -56,7 +59,7 @@
 
 ```
 第 1 层：设为系统默认桌面（standard 版才有的 HOME intent-filter）
-        原生 Android TV / 小米部分机型可用；TCL 等固件直接无视
+        原生 Android TV 可用；TCL / 雷鸟国行固件直接无视
 
 第 2 层：无障碍服务"桌面守护"（HomeGuardService）—— 真正的主力
         · 原桌面一露头，立刻切回 Aerial
@@ -65,10 +68,8 @@
         · 只判断"哪个窗口在前台"，不读屏幕内容（这点对隐私很重要）
 
 第 3 层：被系统杀了怎么复活
-        · 小米待机会 killAllThirdApp → 系统移除无障碍授权
-        · 通知监听（RevivalListener）负责让系统把进程拉回来
-        · 低内存 Android 9 机型（如小米 MFTP0）系统不许通知监听，
-          改用"同步适配器"（RevivalSync），30–60 秒后被拉起
+        · 通知监听（RevivalListener）让系统把进程拉回来
+        · 同步适配器（RevivalSync）作为兜底，30–60 秒后被拉起
         · BootReceiver 兜底真重启
 ```
 
@@ -76,11 +77,17 @@
 
 1. **必须给 `WRITE_SECURE_SETTINGS`**——只有它能改"无障碍服务开关"这种系统设置，而这条权限只能靠 adb 授予，App 自己申请不到。
 2. **必须开无障碍 + 通知监听**——否则守护活不下来，按主页键就回原桌面。
-3. **小米的 `resolve-activity` 显示的还是 PatchWall 是正常的**——接管靠守护，不靠改系统默认桌面。看到这个别以为装失败了。
+3. **别用 `resolve-activity` 判断成败**——它返回原桌面是正常的，接管靠的是守护，不是改系统默认桌面。验收看第四章。
 
 ### 1.4 两个 APK 的区别（决定你该下哪个）
 
-**差异只有 3 行 XML。** 两个包代码完全相同、包名相同（`app.orchard.tv`）、签名相同，唯一的区别是 `standard` 变体多合并了一个 manifest，给主 Activity 加了两个 intent-filter：
+**先给结论，省得看错：**
+
+> 本机（27U8A-S / 27U8APro-S / 32C3APro，同一块板子换壳）在 **Google TV 侧装的是 `standard`**——`adb install -r` 一次成功，`cmd role add-role-holder` 静默生效，按主页键直达 Aerial，**全程没用到守护**。
+>
+> 只有回到**国行灵控系统那一侧**，standard 才会被 `LauncherStrategy` 拒装，那种情况才需要 `guard`。
+
+两个包代码完全相同、包名相同（`app.orchard.tv`）、签名相同，差异只有 3 行 XML——`standard` 多合并了一个 manifest，给主 Activity 加了两个 intent-filter：
 
 ```xml
 <!-- app/src/standard/AndroidManifest.xml（只有 standard 有） -->
@@ -90,38 +97,52 @@
     <category android:name="android.intent.category.DEFAULT" />
 </intent-filter>
 <intent-filter>
-    <category android:name="android.intent.category.HOME.CC" />  <!-- 创维/酷开的私有桌面类别 -->
+    <category android:name="android.intent.category.HOME.CC" />  <!-- 部分国产固件的私有桌面类别 -->
 </intent-filter>
 ```
 
-`guard` 变体只做了一件事：`versionNameSuffix = "-guard"`，**什么声明都不加**。所以它只是个普通 App，从不声称自己是桌面。
+`guard` 变体只做了一件事：`versionNameSuffix = "-guard"`，**什么声明都不加**。所以它在系统眼里就是个普通 App，从不声称自己是桌面。
 
-**这一处差异，连锁出四个完全不同的后果**
+**这一处差异，连锁出几个完全不同的后果**
 
 | | `standard` | `guard` |
 |---|---|---|
-| 能否装到固件封锁的电视 | 会被拦（TCL `LauncherStrategy` 直接拒装） | ✅ 能装 |
-| 能否设为系统默认桌面 | ✅ 可以（`role add-role-holder` 才可能成功） | ❌ 永远不行，`resolve-activity` 永远不会是它 |
-| 主页键靠什么接管 | 系统自己就是桌面，**不需要守护** | **只能靠无障碍守护**，一被关就掉 |
-| 稳定性 | 高（原生 ATV 上最干净） | 中（依赖守护进程活着） |
-| 版本号显示 | `1.52` | `1.52-guard` |
+| 能否安装 | **Google TV 侧 ✅ 能（本机实测）；灵控侧 ❌ 被 `LauncherStrategy` 拒装** | ✅ 任何固件都能装 |
+| 能否设为系统默认桌面 | ✅ 可以，`role add-role-holder` 生效 | ❌ 永远不行，`resolve-activity` 永远不会是它 |
+| 主页键靠什么接管 | 系统自己就认它是桌面，**不需要守护** | **只能靠无障碍守护**，一被关就掉 |
+| 稳定性 | 高（不跟固件抢按键，也不会被系统清理杀掉） | 中（依赖守护进程活着） |
+| 版本号显示 | `1.69` | `1.69-guard` |
 
-**为什么不能合成一个包**：因为"声明 HOME"这件事在安装阶段就会被固件检查。TCL 一类固件看到要装一个声明了 HOME 的第三方包，直接拒装——所以必须准备一个"不声明 HOME"的版本，先混进去，再靠无障碍把主页键抢回来。这是被固件逼出来的双版本。
+**怎么选：先确认自己在哪个系统侧**
+
+| 系统侧 | 选哪个 | 原因 |
+|---|---|---|
+| **Google TV 侧**（本机走的就是这条） | **`standard`** | 这一侧就是原生 Android TV，固件不拦 HOME 声明，role 能设成功，是最干净的路 |
+| 国行灵控系统侧 | `guard` | `LauncherStrategy` 会拦 standard；只能 guard + 无障碍守护，代价是抢不到开机直达 |
 
 **判断口诀**
 
 ```
-先试 standard → 装不上（固件拒装桌面类 App）→ 换 guard
-装 guard 之后 → 第 6 步"设为默认桌面"直接跳过，验收只看第 3、6 条
+先看你装在哪个系统侧：
+  Google TV 侧 → 直接上 standard，不用试 guard
+  国行灵控侧   → 只能 guard，且第 6 步"设为默认桌面"直接跳过
+装 guard 之后 → 验收只看第 3、6 条，第 2 条永远不合格
 ```
 
-**三个容易踩的坑**
+**为什么不能合成一个包**：因为"声明 HOME"这件事在安装阶段就会被固件检查。灵控那类固件看到要装一个声明了 HOME 的第三方包，直接拒装——所以必须准备一个"不声明 HOME"的版本，先混进去，再靠无障碍把主页键抢回来。这是被固件逼出来的双版本。**Google TV 侧不存在这个限制，所以那边用不上它。**
+
+**四个容易踩的坑**
 
 1. **装 guard 版后，验收第 2 条永远不合格**。`resolve-activity` 永远不会显示 `app.orchard.tv`，因为它在系统眼里根本不是桌面。这不是失败，别反复重装。
 2. **两者不能共存**（同包名），但可以互相覆盖：`adb install -r` 换版本时，桌面布局、壁纸、设置全部保留。
-3. **别以为 guard 更"高级"**。它只是退而求其次的方案——真正被系统认成桌面的 standard 才更稳，因为不用跟固件抢按键，也不会被系统清理杀掉。能用 standard 就别用 guard。
+3. **别以为 guard 更"高级"**。它只是退而求其次的方案——真正被系统认成桌面的 standard 才更稳。能用 standard 就别用 guard。
+4. **别拿"装不上"倒推系统侧**。灵控侧报 `INSTALL_FAILED_VERIFICATION_FAILURE` 才说明 standard 被拦；Google TV 侧是能装上的，报这个错就是别的原因（IP 不对、ADB 没开、包下坏了）。
 
-> 你的情况：雷鸟 Android 14 手动装 → 只能用 guard（standard 会被拒）；走"停用安装器"那条绕行路线 → **必须用 standard**，因为你正是要它那两行 HOME 声明，才能被设成默认桌面。见 [6.7 雷鸟专章](#67-雷鸟ffalcon专章按上下左右没反应怎么办)。
+> **本机实测（2026-10-29，Google TV 侧）**
+> `adb install -r aerial-standard.apk` → `Success`
+> `cmd role add-role-holder --user 0 android.app.role.HOME app.orchard.tv` → 静默成功
+> 按主页键 → `mCurrentFocus` = `app.orchard.tv/app.orchard.tv.MainActivity`
+> guard 版一次都没用上。
 
 ### 1.5 成熟度与边界（先说清楚，免得期待错位）
 
@@ -129,14 +150,14 @@
 
 - MIT 开源、作者持续日更（6 天 46 个版本），有完整机型笔记（`docs/devices/`）、Issue 模板、只读诊断脚本 `report.sh`。
 - 不 root、不停用系统 App、不删文件，官方提供完整还原命令。
-- 只换桌面层：会员、账号、小爱同学、有线电视、原来的桌面 App 全部保留（原桌面会作为普通 App 留在列表里）。
+- 只换桌面层：会员、账号、有线电视、原来的桌面 App 全部保留（原桌面会作为普通 App 留在列表里）。
 
 **要有心理准备的地方**
 
 - **开机广告去不掉**。那是固件在 Aerial 启动之前播的，任何第三方桌面都做不到。
 - **机型差异极大**。同一品牌不同固件可能是 ✅ 也可能 ❌，装之前务必查官方支持表。
 - **261 个 open issue**，说明适配还在快速补。遇到怪问题先去 Issues 搜机型名。
-- **不是官方产品**，与 Apple、小米、TCL 无关。出问题只能自己还原。
+- **不是官方产品**，与 Apple、TCL、雷鸟官方无关。出问题只能自己还原。
 
 ---
 
@@ -148,22 +169,30 @@
 
 | 检查项 | 怎么查 | 合格标准 |
 |---|---|---|
-| 系统版本 | 设置 → 关于 → 系统版本 / Android 版本 | **Android 5.0 及以上** |
-| 品牌 | 电视背面铭牌或设置 → 关于 | 不是 LG webOS、三星 Tizen、华为鸿蒙智慧屏 |
+| 系统版本 | 设置 → 关于 → 系统版本 / Android 版本 | **Android 5.0 及以上**（本机 Google TV 侧实测 Android 14） |
+| 品牌 | 电视背面铭牌或设置 → 关于 | **TCL / 雷鸟（FFALCON）**——本指南只覆盖这两个品牌 |
 | 是否开放 ADB | 见下一节 | 能打开 |
 
-❌ **确定不支持**：LG（webOS）、三星（Tizen）、华为智慧屏（鸿蒙）、Android 4.4 及更老。
-⚠️ **能装但接管不了主页键**：雷鸟 55S595C Ultra / 鹤 6 2025（只有"无线调试"，拿不到授权）、创维 7T641 / 75A6E、OPPO K9（要改包名）。
+❌ **确定不支持**：Android 4.4 及更老的机型。
+⚠️ **能装但接管不了主页键**：雷鸟 55S595C Ultra / 鹤 6 2025（只有"无线调试"，拿不到授权）。
 
 ### 自检 2：能不能打开 ADB
 
-打开方式见 [第 2 步](#第-2-步打开电视的-adb-调试)。**雷鸟用户请直接看 [6.7 雷鸟专章](#67-雷鸟ffalcon专章按上下左右没反应怎么办)**——2025 款的入口和 TCL 不一样：可能藏在「无线调试」里（有 6 位配对码），也可能完全没有、只能走有线。有个笨但有效的判断法：**在设置里能不能找到"开发者选项 / ADB 调试 / USB 调试 / 无线调试"这一项**。找不到就按第 2 步的品牌路径去"敲"出来；实在敲不出来（极米 H3、老乐视、荣耀智慧屏、老康佳看不到版本号），就是没戏，别硬试。
+见 [第 2 步](#第-2-步打开电视的-adb-调试)。
+
+**本系列的判断标准很干脆：能不能把 ADB TV 装进去，并且它能把隐藏的开发者选项拉起来。**
+
+- 能 → 过关，继续往下
+- 装不上（没有 Play 商店，又没法 U 盘装）→ 卡在这一步，先解决安装渠道
+- 装上了但拉不起来 → 完全退出重进一次（引导页只在首次启动触发）；还不行说明固件连 Intent 也拦了，这台机器没戏
+
+> 网上那套「上下左右」「连按版本号 7 次」在本系列**无效**，别在那上面花时间。原因和第 2 步里写的一样。
 
 ### 自检 3：网络与 IP
 
 - 电脑和电视**连同一个路由器、同一个网段**（不能一个连路由器 WiFi、一个连光猫 WiFi）。
 - 关掉路由器的"AP 隔离 / 访客网络隔离"，否则同一 WiFi 下也互相 ping 不通。
-- **记下电视 IP**：设置 → 网络 → 已连接的网络（OPPO S1 在这一页最下面）。
+- **记下电视 IP**：设置 → 网络 → 已连接的网络。
 - 建议在路由器里给电视做 **DHCP 静态绑定**。否则电视重启后 IP 一变，你所有命令都要重来——这是新手最常见的"昨天还好好的今天连不上"。
 
 ---
@@ -227,25 +256,69 @@ Version 36.0.0-xxxxxxx
 
 ### 第 2 步：打开电视的 ADB 调试
 
-**前置条件**：电视已联网；遥控器在手边。
+**前置条件**：电视已联网；遥控器在手边；能装第三方 App。
 
-**这一步在干什么**：让电视允许局域网内的电脑连进来调试。这一步全在电视上操作，电脑不参与。
+**这一步在干什么**：让电视允许局域网内的电脑连进来调试。全在电视上操作，电脑不参与。
 
-**操作**：对照你的品牌。
+#### ⚠️ 先说清楚：本系列的两个"常规方法"都无效
 
-| 电视品牌 | 操作路径 |
+网上流传的两种 TCL 开 ADB 的办法，在 **27U8A-S / 27U8APro-S / 32C3APro** 上**实测都不行**：
+
+| 网传方法 | 实测结果 |
 |---|---|
-| **小米 / Redmi** | 设置 → 关于 → 连续按「产品型号」直到提示进入开发者模式 → 回设置 → 账号与安全 → 打开「**ADB 调试**」和「**安装未知来源的应用**」 |
-| **TCL / 雷鸟** | 设置 → 关于 → 本机信息 → 用遥控器**上、下、左、右**（间隔不超过 1 秒）→ 底部出现「更多」→ 打开「ADB」 |
-| **OPPO（含 S1）** | 设置 → 系统 → 关于本机 → 设备型号 → 按**上、上、右、右**再确认 → 设置 → 系统 → 开发者选项 → 打开「USB 调试」 |
-| **海尔 / 模卡 MOOKA** | 按**机身**上的信号源键 → 弹出菜单后用遥控器按**左、左、上、右** → 进入「海尔工厂菜单」→ 把「ADB 调试开关」设为开。**只改这一项，千万别碰"工厂复位"** |
-| **原生 Android TV / Google TV / 索尼 / 海信** | 设置 → 设备偏好设置 → 关于 → 连按「**内部版本号**」（不是"Android 版本"，按错了会出彩蛋，按返回退出）7 次 → 开发者选项 → 打开「USB 调试」（也可能叫「网络调试」） |
+| 设置 → 关于 → 本机信息 → 遥控器按 **上、下、左、右**（间隔 1 秒内）→ 底部出现「更多」 | ❌ 没有任何反应 |
+| 设置 → 系统 → 关于 → 连按「**内部版本号**」7 次 → 开发者选项 | ❌ 开发者选项不出现 |
+
+**不是步骤做错了，是 TCL 把入口从设置界面整个摘掉了。** 实测系统里的 `development_settings_enabled` 是 `1`、`DevelopmentActivity` 页面也还在，只是**没有入口按钮**——页面在，门被焊死了。
+
+所以不要在这两种方法上耗时间，直接走下面。
+
+#### 唯一可行的路：借第三方 App 把隐藏页面"拉"起来
+
+原理：有些 TV 工具类 App 的引导流程会主动发一个 `android.settings.APPLICATION_DEVELOPMENT_SETTINGS` 的 Intent，把那个被藏起来的页面顶到前台。**TCL 拦得住按钮，拦不住 Intent。**
+
+**路线 A：Google TV 侧（本机走的就是这条，已验证）**
+
+1. 电视联网，打开 **Google Play**
+2. 搜 **ADB TV**（评分 4.7 那个），装上
+3. 打开它，**第一次进引导界面会自动拉起隐藏的「开发者选项」**
+4. 在里面打开「**无线调试 / USB 调试**」
+
+**路线 B：国行灵控系统侧**
+
+国行系统没有 Play 商店，得先把 ADB TV 的安装包弄进去：
+
+| 办法 | 说明 |
+|---|---|
+| **U 盘安装** | APK 拷到 U 盘插电视，用电视自带的文件管理器装 |
+| **「超级大屏」小程序** | 手机端推送到电视安装 |
+| **Projectivy Launcher 的 tools 目录** | [spocky/miproja1](https://github.com/spocky/miproja1) 仓库里带了 ADB TV 的安装包 |
+
+> Projectivy 自己也是第三方 App，也得先装进去，所以通常还是先走 U 盘。
+
+#### 打开之后：第一件事是固化入口，别只靠这一次
+
+ADB 是从那个"借来的"页面开的。**这个入口随时会再次消失**（重启、系统更新、TCL 清理），而 ADB 又只能从它开——这是个死循环。
+
+所以打开 ADB 后的第一件事不是装 Aerial，而是把这个入口固化下来：
+
+```powershell
+adb install -r devshortcut.apk
+```
+
+装完 Aerial 应用列表里会多一个「**开发者选项**」图标，点它直接进那个页面，**不依赖 ADB、不依赖 ADB TV、也不依赖 Projectivy**。这才是真正的后路。
+
+> 这个 APK 本工作区有现成的（`tools/devshortcut/`，8.4 KB），也可以按 [8.5](#85-自己编一个-tv-快捷方式-app无-gradle不装-android-studio) 自己编一个，零权限、不联网。
 
 **同时记下电视 IP**：设置 → 网络 → 已连接的网络 → 点进去看 IP 地址，形如 `192.168.1.20`。
 
-**预期结果**：电视上 ADB 相关开关处于"开"的状态；你手里有一个 IP。
+**预期结果**：电视上「USB 调试 / 网络调试」处于开启状态；你手里有一个 IP；电视上装好了「开发者选项」快捷入口。
 
-**不对怎么办**：找不到「产品型号」/「本机信息」这类入口 → 说明该机型固件把入口藏得很深或干脆没有，属自检 2 不通过，停在这里。
+**不对怎么办**
+
+- ADB TV 装不上 → 换一版，或走 U 盘路线
+- ADB TV 打开了但没拉起开发者选项 → 完全退出再进一次，它的引导页只在首次启动时触发
+- 开关打开了但没记到 IP → 电视没连上网，先把 Wi-Fi 连上
 
 ---
 
@@ -321,21 +394,10 @@ Success
 | 错误码 | 含义 | 处理 |
 |---|---|---|
 | `INSTALL_FAILED_VERIFICATION_FAILURE` | **TCL**：固件拒绝一切 adb 安装 | 走下面的「TCL 专用通道」 |
-| `INSTALL_FAILED_USER_RESTRICTED` | 固件在拦 adb 安装（创维常见） | 见下方「创维」 |
 | `INSTALL_FAILED_NO_MATCHING_ABIS` | 架构不支持（极罕见） | 放弃 |
 | `INSTALL_FAILED_OLDER_SDK` | 系统低于 Android 5.0 | 放弃，机型不支持 |
 | `INSTALL_PARSE_FAILED_*` | 下载文件损坏 | 删掉重下，比对大小约 2.94 MB |
 | 提示"不允许安装桌面类 App" | 固件禁止第三方桌面 | 改用 guard 版：把文件名和 URL 里的 `standard` 换成 `guard` |
-
-**创维的特殊处理**（`INSTALL_FAILED_USER_RESTRICTED`）：
-
-```powershell
-adb shell settings get global verifier_verify_adb_installs   # 先记下原值！
-adb shell settings put global verifier_verify_adb_installs 0
-adb install -r aerial-standard.apk
-```
-
-装完**把原值写回去**（原值是 `null` 就用 `adb shell settings delete global verifier_verify_adb_installs`）。别留着 `0`，那是把安装校验永久关了。
 
 **TCL 专用通道**（adb 装不上，只能走电视自带的"多屏互动"）：
 需要电脑上有 Python 3（`python --version` 能出版本号；没有就先装）。用 **guard 版**。
@@ -391,14 +453,13 @@ adb shell am start -W -n app.orchard.tv/.MainActivity
 | `SYSTEM_ALERT_WINDOW` | 悬浮窗（启动/切换时的覆盖层） | 切换时闪一下原桌面 |
 | `WRITE_SETTINGS` | 改系统设置（亮度等） | 控制中心亮度调不动 |
 | `REQUEST_INSTALL_PACKAGES` | 应用内升级（下载 APK 交给系统安装器） | 无法在电视上直接升级 |
-| `GET_USAGE_STATS` ×2 | 老小米 Android 6 的桌面不报窗口变化，靠用量统计判断 | 老小米接管失效 |
 | `allow_listener` | 通知监听，被系统杀了之后负责复活 | 待机唤醒后回不去 |
 | `APP_AUTO_START` / `APP_ASSOC_START` | 自启动白名单（**只有 TCL 认**） | TCL 上开机不自动进入 |
 
 **预期结果**
 
 - 大部分命令**静默成功**（没有任何输出）。
-- 最后两条 `APP_AUTO_START` / `APP_ASSOC_START` 在非 TCL 电视上报 `Error: ...` 是**正常的**，忽略。
+- 最后两条 `APP_AUTO_START` / `APP_ASSOC_START` 报 `Error: ...` 是**正常的**，忽略（不同固件只认其中一两条）。
 - `am start` 有输出，且电视上 Aerial 桌面已经出现。
 
 **成功的判据不是"每条都没报错"，而是"电视上看到 Aerial 首页"**。个别命令报错可以先往下走，最后用第四章的验收来定生死。
@@ -431,31 +492,20 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME app.orchard.tv
   ```powershell
   adb shell cmd package set-home-activity --user 0 app.orchard.tv/.MainActivity
   ```
-- 两条都报错、或跑完毫无变化 → **正常现象，不要纠缠**。小米、TCL 等固件会无视这一步，真正生效的是第 7 步的守护。继续往下。
-- **装的是 guard 版 → 直接跳过本步。**
-
-**海信 VIDAA 额外一步**（其他品牌跳过）：先查有没有厂商专用属性
-
-```powershell
-adb shell getprop persist.vt.use_home_pkg
-```
-
-- 有输出（例如 `com.jamdeo.tv.vod`）且不是 `app.orchard.tv` → **记下这个原值**，然后：
-  ```powershell
-  adb shell settings put global aerial_vt_home_pkg <原值>
-  adb shell setprop persist.vt.use_home_pkg app.orchard.tv
-  ```
-- 没有输出 → 跳过。
-
-> 为什么要先存原值？因为还原时要把 `persist.vt.use_home_pkg` 写回原来的包名，否则你的 VIDAA 桌面就永久变成 Aerial 了。
+- **Google TV 侧这一步应该成功**（本机实测静默通过）。如果报错，先查是不是装的 `standard`、是不是装在同一侧，别直接当成"固件不支持"。
+- **国行灵控侧**跑完毫无变化是正常的——那边固件会无视 role，真正生效的是第 7 步的守护。继续往下。
+- **装的是 guard 版 → 直接跳过本步**（它没声明 HOME，永远设不上）。
 
 ---
 
-### 第 7 步：启用桌面守护（最关键的一步）
+### 第 7 步：启用桌面守护（灵控侧必须，Google TV 侧可跳过）
 
 **前置条件**：第 5 步已授 `WRITE_SECURE_SETTINGS`；Aerial 启动过。
 
-**这一步在干什么**：确认无障碍里真的有 Aerial 的守护服务在跑。**这是"按主页键回 Aerial"的唯一保证。**
+> **Google TV 侧可以跳过本步。** 那边 standard 已经设成系统默认桌面，主页键天然归 Aerial，不需要守护去抢。本节说的"最关键"是**针对国行灵控侧**——那边设不上 role，只能靠守护硬抢。
+> 而且 Aerial 首次启动时会自己尝试打开守护，你去查的时候通常它已经在了，不用特意管。
+
+**这一步在干什么**：确认无障碍里真的有 Aerial 的守护服务在跑。**灵控侧这是"按主页键回 Aerial"的唯一保证。**
 
 **操作**
 
@@ -480,7 +530,7 @@ adb shell settings put secure accessibility_enabled 1
 
 - 原来的值是 `null` 或空 → 只写 `app.orchard.tv/app.orchard.tv.guard.HomeGuardService`。
 - 原来的值里含 `$` → 在 PowerShell 里要写成 `` `$ `` 转义。
-- 有些固件上 `settings` 命令会**卡住不返回**（腾讯极光盒子 6 实测等 120 秒后断开）→ 直接跳过，改用下面这条看：
+- 有些固件上 `settings` 命令会**卡住不返回**（等 120 秒后断开）→ 直接跳过，改用下面这条看：
   ```powershell
   adb shell dumpsys accessibility
   ```
@@ -509,7 +559,7 @@ adb shell settings get secure screensaver_enabled
   adb shell settings put secure screensaver_components app.orchard.tv/app.orchard.tv.dream.AerialDream
   adb shell am broadcast -a app.orchard.tv.CONFIG -n app.orchard.tv/.guard.ConfigReceiver --ez own_screensaver true
   ```
-- 输出 `0` 或 `null` → 跳过。这台电视不用系统屏保（小米就属这类，它走"桌面内屏保"，靠 Aerial 自己空闲 5 分钟后触发）。
+- 输出 `0` 或 `null` → 跳过，说明这台电视的系统屏保没开（Aerial 自己有桌面内屏保，空闲 5 分钟后触发）。
 
 **8b. 保持 ADB 常开**（建议开）
 
@@ -517,7 +567,7 @@ adb shell settings get secure screensaver_enabled
 adb shell am broadcast -a app.orchard.tv.CONFIG -n app.orchard.tv/.guard.ConfigReceiver --ez keep_adb true
 ```
 
-**为什么建议开**：小米待机唤醒后会自己把 ADB 关掉，导致下次升级连不上，还得重新去设置里翻半天。开了这项，Aerial 会把 ADB 重新打开。
+**为什么建议开**：部分固件待机唤醒后会自己把 ADB 关掉，导致下次升级连不上，还得重新去设置里翻半天。开了这项，Aerial 会把 ADB 重新打开。
 
 **预期结果**：`am broadcast` 输出 `Broadcast completed: result=0` 或类似成功提示。
 
@@ -564,9 +614,9 @@ adb shell "sleep 3; dumpsys window | grep mCurrentFocus"
 | # | 命令 | 合格标准 | 不合格说明 |
 |---|---|---|---|
 | 1 | `versionName` | 有版本号（如 `1.52`） | 没装上，回第 4 步 |
-| 2 | `resolve-activity` | 是 `app.orchard.tv` **更好**；是 `com.mitv.tvhome`（小米）或 TCL 自家桌面**也正常** | 报错说明老系统没 `cmd`，改用 `pm resolve-activity` |
-| 3 | `enabled_accessibility_services` | 含 `...guard.HomeGuardService` | 守护没开，回第 7 步 |
-| 4 | `dumpsys accessibility \| grep -c` | 数字 **> 0** | 守护没在跑，见第六章 |
+| 2 | `resolve-activity` | **Google TV 侧应该是 `app.orchard.tv`**；灵控侧是 TCL 自家桌面也算正常（那边设不上 role，靠守护接管） | 报错说明老系统没 `cmd`，改用 `pm resolve-activity` |
+| 3 | `enabled_accessibility_services` | 含 `...guard.HomeGuardService`。**Google TV 侧不强制**——那边 standard 已接管桌面，守护只是保险 | 灵控侧没开 → 回第 7 步 |
+| 4 | `dumpsys accessibility \| grep -c` | 数字 **> 0**。同样，Google TV 侧为 0 不算失败 | 灵控侧没在跑 → 见第六章 |
 | 5 | `input keyevent KEYCODE_HOME` | 电视上切到 Aerial 首页 | — |
 | 6 | `mCurrentFocus` | **包含 `app.orchard.tv`** | 这就是失败，见下 |
 
@@ -581,7 +631,7 @@ mCurrentFocus=Window{2f3a1c u0 app.orchard.tv/app.orchard.tv.MainActivity}
 **第 6 条不是 `app.orchard.tv` 时按顺序试**
 
 1. **等 5 秒再跑一次第 5、6 条**。有的电视守护启动慢。
-2. **用实体遥控器按主页键**，再只跑第 6 条。`input keyevent` 模拟的按键不经过守护的按键过滤，索尼 Android 9 上会与实体键结果不同，此时以遥控器为准。
+2. **用实体遥控器按主页键**，再只跑第 6 条。`input keyevent` 模拟的按键不经过守护的按键过滤，某些固件上与实体键结果不同，此时以遥控器为准。
 3. 还是不行 → 看第六章「装上但主页键回原桌面」。
 
 **最后一步：重启复验**（确认开机直达）
@@ -632,13 +682,13 @@ adb shell am broadcast -a app.orchard.tv.CONFIG -n app.orchard.tv/.guard.ConfigR
 | `unauthorized` | 电视上的弹窗必须用**遥控器**点"允许"并勾"始终允许"。弹窗几秒就消失，重跑 `adb devices` 会再弹 |
 | `Connection refused` | 端口 5555 没在听：ADB 没开或固件只给"无线调试"（随机端口） |
 | 昨天能连今天不能 | 99% 是 IP 变了。去路由器做 DHCP 静态绑定 |
+| 配对页显示的 IP 是 `172.19.0.1` | 电视开着代理（tun 网卡）。**关掉代理再看真实 IP**，否则配对必然失败 |
 
 ### 6.2 装不上（第 4 步）
 
-见第 4 步的错误码表。三条高频：
+见第 4 步的错误码表。两条高频：
 
-- **TCL**：`INSTALL_FAILED_VERIFICATION_FAILURE` → 走多屏互动 + guard 版。
-- **创维**：`INSTALL_FAILED_USER_RESTRICTED` → 临时关 `verifier_verify_adb_installs`，装完写回。
+- **TCL / 雷鸟**：`INSTALL_FAILED_VERIFICATION_FAILURE` → 走多屏互动 + guard 版。
 - **提示不许装桌面类 App** → 换 `guard` 版。
 
 ### 6.3 装上了，但主页键回原桌面
@@ -655,44 +705,40 @@ adb shell am broadcast -a app.orchard.tv.CONFIG -n app.orchard.tv/.guard.ConfigR
    ```powershell
    adb shell "dumpsys accessibility | grep -c -E 'label=(Aerial|app.orchard.tv)'"
    ```
-   - 是 `0` 但上一条有 Aerial → 常见于**升级之后**，系统还在找旧安装目录（小米 Android 9）。强停再开一次：
+   - 是 `0` 但上一条有 Aerial → 常见于**升级之后**，系统还在找旧安装目录。强停再开一次：
      ```powershell
      adb shell am force-stop app.orchard.tv
      adb shell am start -W -n app.orchard.tv/.MainActivity
      ```
      等 3 秒重新验收。
    - 是 `0` 且上一条也没有 Aerial → 固件拦了侧载的无障碍服务。去电视的**安全中心 / 权限管理**里给 Aerial 打开"自启动""无障碍"，再 `adb shell am start -n app.orchard.tv/.MainActivity` 重新验收。
-4. 全部无效 → 你的机型在支持表里可能是 ❌（创维 7T641 / 75A6E 会黑屏卡死），止损还原。
+4. 全部无效 → 止损还原，别继续折腾。
 
-### 6.4 小米的"正常但看着像失败"
-
-- `resolve-activity` 显示 `com.mitv.tvhome` → **正常**，守护接管，不是失败。
-- **千万不要停用 `com.mitv.tvhome`**。那是原桌面，停用它会让电视开不了机。
-- 待机后回来慢：小米 Android 9 低内存机型（`ro.config.low_ram` 为 `true`，如 MFTP0）系统会强停 Aerial，靠同步服务 30–60 秒拉回来。**测待机请待机 1 分钟以上，唤醒后等 30 秒再看**，别在这期间按主页键或开别的 App。
-
-### 6.5 其它
+### 6.4 其它
 
 | 症状 | 原因 / 处理 |
 |---|---|
 | TCL 弹「多屏互动：正在发起应用推送」 | 正常。遥控器**先按「右」**选中"同意"再确认 |
 | 无障碍开关过一会自己关了 | 电视的"安全中心/电视管家"在清理。把 Aerial 加进自启动白名单 |
-| 开机先进原桌面再跳 Aerial | 固件在开机完成前拦截第三方 App。海信 VIDAA 属此类，按一次主页键即可 |
+| 开机先进原桌面再跳 Aerial | 固件在开机完成前拦截第三方 App。按一次主页键即可 |
 | 首页滑动卡顿 | 个性化 → 效果 → 选"流畅"（1.48 起低配机型会自动选） |
 | 屏保黑屏 / 不出画面 | 航拍要连 `sylvan.apple.com`，网络差会 8 秒后换下一段，连续 3 次失败自动换照片屏保。可改选"照片"或"时钟" |
 | 天气不显示 | 缺定位权限，补第 5 步第一条；城市也能在手机配置页手动设 |
 | 电视上的 Aerial 图标点了没反应 | 它已经是默认桌面了，属于正常 |
 
-### 6.6 确定不支持，别浪费时间
+### 6.5 确定不支持，别浪费时间
 
-LG webOS、三星 Tizen、华为鸿蒙智慧屏、Android 4.4 及更老；打不开 ADB 的极米 H3、老乐视、荣耀智慧屏、老康佳。
+Android 4.4 及更老的机型；固件把 ADB 入口彻底抹掉、设置里连版本号都看不到的机型。
 
 ---
 
-### 6.7 雷鸟（FFALCON）专章：按"上下左右"没反应怎么办
+### 6.6 雷鸟（FFALCON）专章：按"上下左右"没反应怎么办
 
 雷鸟是 TCL 子品牌，**固件同源但机型跨度极大**，老教程和新机器完全是两套逻辑。先分档，别照着 TCL 的路径瞎试。
 
-> 🟢 **先花 30 秒排除最好走的那一类**：如果你电视的默认桌面是 `com.google.android.apps.tv.launcherx`（Google TV），那它根本不适用本章——直接看下面 **6.10 节**。有些雷鸟是**双系统**机型（国行系统里藏着完整的 Google TV，可手动切过去，比如 27U8A-S），切到那一侧之后 standard 一装、role 一设就完事，10 分钟搞定。
+> 🟢 **本系列（27U8A-S / 27U8APro-S / 32C3APro）可以直接跳过本章。** 这三个是双系统机型，只要切到 Google TV 侧，走 [第 2 步](#第-2-步打开电视的-adb-调试)的 ADB TV 路线 + standard 版就完事，实测 10 分钟。详细实测见 **6.9 节**。
+>
+> 本章是给**单系统的灵控机型**准备的：那些机器没有 Google TV 侧可切，只能跟灵控固件硬碰。
 
 **第一步：确认你是哪一档**
 
@@ -711,9 +757,9 @@ LG webOS、三星 Tizen、华为鸿蒙智慧屏、Android 4.4 及更老；打不
 - `com.android.settings` 和 `com.android.tv.settings` 两个系统设置包**都不存在**，所以用 Intent 也调不出原生开发者选项页。
 - ADB 走的是 **Android 11+ 的 TLS 无线调试**：端口每次开关都变（实测 34897 / 41607 / 46879 / 42803），**5555 / 5554 / 5037 全程 closed**。
 - **没有「使用配对码配对设备」入口**：`adb pair` 报 `protocol fault`，`adb connect` 报 `failed to connect`。设备强制 `STLS`，没有明文回落。
-  - ⚠️ **但这条只对当时那版固件（`V8-0015T11-LF1V487`，2026-10 中旬）成立。** 后来有用户的更新固件里出现了完整的「无线调试 → 已启用 + **使用配对码配对设备**」页面（能看到 IP 和端口，也有 6 位配对码入口）。**所以顺序要改成：先去设置里找「无线调试」页，有配对码入口就直接 `adb pair`，连得上就不用买线。** 具体做法见 [6.7.1](#671-如果你的电视有无线调试--配对码入口)。
+  - ⚠️ **但这条只对当时那版固件（`V8-0015T11-LF1V487`，2026-10 中旬）成立。** 后来有用户的更新固件里出现了完整的「无线调试 → 已启用 + **使用配对码配对设备**」页面（能看到 IP 和端口，也有 6 位配对码入口）。**所以顺序要改成：先去设置里找「无线调试」页，有配对码入口就直接 `adb pair`，连得上就不用买线。** 具体做法见 [6.6.1](#661-如果你的电视有无线调试--配对码入口)。
 
-**6.7.1 如果你的电视有「无线调试 + 配对码」入口**
+**6.6.1 如果你的电视有「无线调试 + 配对码」入口**
 
 **先用 30 秒确认，能省下一根线和一堆麻烦。** 在设置里找到「无线调试」（可能在 通用 / 系统 / 关于 附近，或从 Projectivy 的 `Additional settings` 进），看这个页面长什么样：
 
@@ -747,7 +793,7 @@ LG webOS、三星 Tizen、华为鸿蒙智慧屏、Android 4.4 及更老；打不
 - **页面显示的 IP 可能不是你的真实局域网 IP。** 见过显示 `172.19.0.1` 的（这是虚拟机/容器网桥常见的地址段），正常家用网段一般是 `192.168.x.x`。先用 **设置 → 网络 → 已连接的网络** 确认真实 IP，配对和连接时用真实 IP 替换掉页面上那个。
 - **端口每次开关无线调试都会变**，重启后要回来重新看端口。配对信息本身会保留，通常不用重新配对，直接 `adb connect <新端口>` 即可；连不上就再 pair 一次。
 
-配对通了之后，直接跳到 [路线 B0](#67-雷鸟ffalcon专章按上下左右没反应怎么办)——装 guard 版、写无障碍设置、搞定。
+配对通了之后，直接跳到 [路线 B0](#66-雷鸟ffalcon专章按上下左右没反应怎么办)——装 guard 版、写无障碍设置、搞定。
 
 ---
 
@@ -838,11 +884,9 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME app.orchard.tv
 - 不要指望"恢复出厂设置"能解决接管问题，它只会把你的账号和设置一起清掉。
 - 如果你的诉求只是"没有广告和推荐流的干净桌面"，**B1 已经能满足 80%**——Aerial 就在那儿，当个 App 用也不难受。真正想开机直达，成本收益比其实不高。
 
-**如果你决定放弃折腾**（很多雷鸟用户最后的选择）：买一个电视盒子（小米盒子、腾讯极光 6 等，支持表里是 ✅），把 Aerial 装在盒子上，电视只当显示器。盒子是完整 Android TV，没有这些固件级封锁，一次装好、开机直达。
-
 ---
 
-### 6.8 只用 U 盘/多屏互动装（不碰 ADB），能用到什么程度
+### 6.7 只用 U 盘/多屏互动装（不碰 ADB），能用到什么程度
 
 很多人的实际选择是：ADB 折腾不动，先手动装上再说。那到底差在哪，这里说清楚。
 
@@ -899,11 +943,13 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME app.orchard.tv
 
 ---
 
-### 6.9 支线：用第三方启动器打开隐藏设置（"P 开头"的那个）
+### 6.8 支线：用第三方启动器打开隐藏设置（Projectivy Launcher）
 
-网上流传一个说法："让 AI 给你一个能打开隐藏设置的启动器，推送进去就行，P 开头的。"
+> ⚠️ **本系列实测修正（2026-10）**：在 27U8A-S / C3APro 的 Google TV 侧，Projectivy 设置里的「打开隐藏设置 / Android settings」**点了没反应**；工程菜单那套也不适用——这台是 **Realtek RT2885P**，不是 MT9655。
+> 它对本系列唯一有用的地方是：**仓库 `tools/` 目录里带了 ADB TV 的安装包**，可以拿来装 ADB TV（见 [第 2 步](#第-2-步打开电视的-adb-调试)的路线 B）。
+> 下面保留的是其他 TCL / 雷鸟机型的排查思路，**本系列不用照着做**。
 
-**"P 开头"指的是 Projectivy Launcher**（开源，作者 Spocky，仓库 `spocky/miproja1`，官网 `spocky.github.io/miproja1`）。这条建议**不是瞎猜**——它的官方功能列表里明确写着：
+**指的是 Projectivy Launcher**（开源，作者 Spocky，仓库 `spocky/miproja1`，官网 `spocky.github.io/miproja1`）。
 
 > **Engineering Menus Access**：自动检测并直达隐藏的工程菜单（**MediaTek**、AmLogic、Xiaomi、FengOS…）
 > **Additional settings**：打开 amlogic/mediatek 的设置应用（如果存在）
@@ -946,12 +992,12 @@ Projectivy 自己**声明 HOME**（它就是个桌面），所以装它的时候
 
 **自己再确认一遍的笨办法**：Projectivy 设置 → `Edit categories` / 编辑分类 → `Manage apps` / 管理应用，这里会列出它扫描到的**全部应用**（含系统应用）。翻一遍，找有没有 `MTK`、`MediaTek`、`Factory`、`工程`、`工厂` 字样。没有 → 这条支线确认走不通。
 
-**如果第 4 步任何一个能打开，你就拿到了 ADB 入口**，接着走 [6.7 的路线 B0](#67-雷鸟ffalcon专章按上下左右没反应怎么办)——那才是真正解决问题的路。
+**如果第 4 步任何一个能打开，你就拿到了 ADB 入口**，接着走 [6.6 的路线 B0](#66-雷鸟ffalcon专章按上下左右没反应怎么办)——那才是真正解决问题的路。
 
 **三个提醒**
 
 - 装上后**不要**把 Projectivy 设成默认桌面，否则它会和 Aerial 抢 Home，排查时你会分不清是谁在接管。测完直接卸载。
-- 第 5、6 步如果这几个条目要么根本没有、要么点开报错，说明这台固件确实把 MTK 设置也清了，这条支线到此为止，回 6.7 走有线。
+- 第 5、6 步如果这几个条目要么根本没有、要么点开报错，说明这台固件确实把 MTK 设置也清了，这条支线到此为止，回 6.6 走有线。
 - **不要**为了装它去停用「软件包安装程序」。那是 B2 的动作，风险和收益不匹配，别为了一个探路工具冒变砖风险。
 
 **这条支线的期望值**：中等偏低。但它成本最低、可完全回退（卸载即可），所以在插线之前值得先花 20 分钟试一次。
@@ -969,11 +1015,11 @@ Projectivy 自己**声明 HOME**（它就是个桌面），所以装它的时候
 
 ---
 
-### 6.10 实测记录：双系统机型（雷鸟 27U8A-S → Google TV 侧）——最好走的一条路
+### 6.9 实测记录：双系统机型（雷鸟 27U8A-S → Google TV 侧）——最好走的一条路
 
 **2026-10-29 实机验证通过，全程 10 分钟，零风险动作。**
 
-有一类 TCL / 雷鸟电视是**双系统**的：国行固件是雷鸟自家系统（灵控桌面），但里面**藏了一套完整的 Google TV**，可以手动切过去。切到 Google TV 那一侧之后，它和 6.7 描述的完全是两回事，走的是**最干净的那条 standard 路线**。
+有一类 TCL / 雷鸟电视是**双系统**的：国行固件是雷鸟自家系统（灵控桌面），但里面**藏了一套完整的 Google TV**，可以手动切过去。切到 Google TV 那一侧之后，它和 6.6 描述的完全是两回事，走的是**最干净的那条 standard 路线**。
 
 > 实测机型：**雷鸟 27U8A-S**（用户手动切到内置的 Google TV 系统后测得）
 > `model=C3APRO` / `device=G10` / `product=M01` / `brand=TCL` / Android 14 / build `UKR1.250628.001`
@@ -981,7 +1027,7 @@ Projectivy 自己**声明 HOME**（它就是个桌面），所以装它的时候
 **⚠️ 双系统机型必须知道的四件事**
 
 1. **Aerial 只装在 Google TV 那一侧。** 两套系统的数据是分开的，切回雷鸟系统看不到它，那边要装得重新装一遍。
-2. **切回雷鸟系统后，那边大概率就是 6.7 描述的封锁环境**（灵控桌面 + LauncherStrategy）。**千万不要在雷鸟系统里用「停用软件包安装程序」那套**——收益不如直接在 Google TV 侧用。
+2. **切回雷鸟系统后，那边大概率就是 6.6 描述的封锁环境**（灵控桌面 + LauncherStrategy）。**千万不要在雷鸟系统里用「停用软件包安装程序」那套**——收益不如直接在 Google TV 侧用。
 3. **哪边用，就在哪边装。** 如果只是想要干净桌面，一直待在 Google TV 侧就行，没必要来回切。
 4. **系统 OTA 有风险。** 隐藏的 Google TV 属于非公开功能，官方更新可能覆盖或改变切换方式。**升级前先把自己切换系统的方法记下来**（工程菜单路径、按键序列），别只记在脑子里。
 
@@ -992,7 +1038,7 @@ adb shell getprop ro.board.platform
 adb shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME"
 ```
 
-| 判断项 | Google TV 侧（好走） | 雷鸟自家系统（难走，见 6.7） |
+| 判断项 | Google TV 侧（好走） | 雷鸟自家系统（难走，见 6.6） |
 |---|---|---|
 | `ro.board.platform` | `RT2885P` 等 Realtek 平台 | `mt9655` / `mt5879` |
 | 默认桌面 | `com.google.android.apps.tv.launcherx` | `com.tcl.cyberui` |
@@ -1215,7 +1261,6 @@ adb shell cmd role remove-role-holder --user 0 android.app.role.HOME app.orchard
    adb shell settings get secure enabled_accessibility_services
    ```
    摘完只剩它自己时：`adb shell settings delete secure enabled_accessibility_services`
-3. 海信 VIDAA 还原：`adb shell settings get global aerial_vt_home_pkg` 有值 → 用它写回 `persist.vt.use_home_pkg`，再 `adb shell settings delete global aerial_vt_home_pkg`。
 
 最后按主页键回原桌面；想彻底删掉：`adb uninstall app.orchard.tv`。
 
@@ -1309,7 +1354,7 @@ curl -fsSL https://aerial.qust.me/install.sh | KEEP_ADB=1 TV=192.168.1.20 bash
 | 看桌面实际能看到哪些应用 | `adb shell "cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LEANBACK_LAUNCHER"` |
 | 看包名对应的安装目录 | `adb shell "pm list packages -f"`（`/system`、`/product` = 预装，`/data/app` = 后装或已更新） |
 
-> ⚠️ **`resolve-activity` 不能用来判断接管是否成功。** 部分机型（如 6.10 的 TCL Google TV）上它会一直返回原桌面（`launcherx` 的 `priority=2` 压过 Aerial 的 `0`），但 role 其实已经归 Aerial、按主页键进的就是 Aerial。**以 `cmd role get-role-holders` + 实际按键结果为准。**
+> ⚠️ **`resolve-activity` 不能用来判断接管是否成功。** 部分机型（如 6.9 的 TCL Google TV）上它会一直返回原桌面（`launcherx` 的 `priority=2` 压过 Aerial 的 `0`），但 role 其实已经归 Aerial、按主页键进的就是 Aerial。**以 `cmd role get-role-holders` + 实际按键结果为准。**
 
 ### 8.5 自己编一个 TV 快捷方式 App（无 Gradle、不装 Android Studio）
 
@@ -1611,10 +1656,11 @@ adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
 | 日期 | 内容 |
 |---|---|
 | 2026-10-26 | 依据 Aerial v1.52 官方文档（`site/agent.md`、README、`docs/ARCHITECTURE.md`）整理初版，命令未做改写 |
-| 2026-10-29 | 增补 6.7 雷鸟专章、6.8 U 盘安装边界、6.9 第三方启动器路线 |
-| 2026-10-29 | 新增 **6.10 双系统机型实测**（雷鸟 27U8A-S → Google TV 侧，v1.69 全程验证）；补「开发者选项被摘」的两条路；补开机直达复验结论；8.4 速查表补 role / 屏保 / 编译命令；新增 **8.5 自编译 TV 快捷方式 App** |
-| 2026-10-29 | 新增 **8.6**：无障碍入口探测方法（实测 `oemlink.AccessibilitySettingsActivity`）+ `pm uninstall --user 0` 的真实语义与预装应用精简清单（实测数据）；6.9 补「TCL Google TV 侧 Projectivy 的真实用途」修正；8.4 补无障碍 / 卸载 / 内存排查命令；原 8.6 三条红线顺延为 8.7 并改写第 1 条 |
+| 2026-10-29 | 增补 6.6 雷鸟专章、6.7 U 盘安装边界、6.8 第三方启动器路线 |
+| 2026-10-29 | 新增 **6.9 双系统机型实测**（雷鸟 27U8A-S → Google TV 侧，v1.69 全程验证）；补「开发者选项被摘」的两条路；补开机直达复验结论；8.4 速查表补 role / 屏保 / 编译命令；新增 **8.5 自编译 TV 快捷方式 App** |
+| 2026-10-29 | 新增 **8.6**：无障碍入口探测方法（实测 `oemlink.AccessibilitySettingsActivity`）+ `pm uninstall --user 0` 的真实语义与预装应用精简清单（实测数据）；6.8 补「TCL Google TV 侧 Projectivy 的真实用途」修正；8.4 补无障碍 / 卸载 / 内存排查命令；原 8.6 三条红线顺延为 8.7 并改写第 1 条 |
 | 2026-10-29 | **第七章「升级」重写**：版本自查、应用内升级、`adb install -r` 完整流程、更新后 4 项验收、3 个常见问题；补「TCL 的 adb install 会失败——但 Google TV 侧是例外」这一实测修正；8.6.5 新增「停用冗余桌面」（launcherx，含两条硬前提）与四阶段收益表 |
+| 2026-11-05 | **收窄到 TCL / 雷鸟**：删除小米、创维、海信 VIDAA、OPPO、海尔、极光、LG / 三星 / 华为等机型的专门内容，删掉「6.4 小米的正常但看着像失败」整节；章节号相应前移（原 6.7→6.6 … 原 6.10→6.9，锚点同步）；第 2 步品牌表只保留 TCL / 雷鸟的两条路径；第 6 步删掉海信 VIDAA 专属步骤；还原章节删掉 VIDAA 还原 |
 
 > 上游更新较快，执行前可对照 https://aerial.qust.me/agent.md 确认是否变化。
 > 本机实测环境：TCL C3APRO（雷鸟 27U8A-S 的 Google TV 侧）/ Realtek RT2885P / Android 14 (SDK 34)，Aerial v1.69。
