@@ -8,7 +8,15 @@ GoogleTV的引导页面强制联网，如果你没有网络环境或者不会让
 
 理论上不切换GoogleTV也能部署Aerial桌面，目的都是先找到adb
 
-主要思路是安装adb tv这个app（如果你是GoogleTV的话，Google Play就有这个app，评分4.7），第一次进它的引导界面会拉起隐藏的开发者选项，里面开启无线adb调试（经我实测网上说的tcl上下左右、连按7次版本号在27u8a-s上都不能打开开发者选项，tcl太狗了直接藏起来了，并且即使打开了每次调试端口都会跳，但是跳端口ai有办法解决），如果你是原生国产系统，可以u盘安装或者使用”超级大屏“小程序推送，前提是先找到adb tv的安装包，或者用Projectivy Launcher这个app[spocky/miproja1](https://github.com/spocky/miproja1)，里面有个tools页面会有adb tv的安装包，这个app还有一个功能是打开隐藏设置，但是我试了打不开。然后开了adb让agent连接就可以了，然后我让agent写了个小应用，用于直接进入开发者选项，这样就不会担心以后不能再访问失去控制了，后面就可以照着Aerial的readme继续搞其他的。
+经我实测网上说的TCL开adb的方法，上下左右、连按7次版本号在27u8a-s上都不能打开开发者选项，tcl太狗了直接藏起来了，并且即使打开了每次调试端口都会跳，但是跳端口ai有办法解决![开发者选项-截图-2026-11-07](assets/开发者选项-截图-2026-11-07.png)
+
+主要思路是安装adb tv这个app（如果你是GoogleTV的话，Google Play就有这个app，评分4.7），第一次进它的引导界面时会拉起隐藏的开发者选项，在里面开启无线adb调试，如果你是原生国产系统，可以u盘安装或者使用”超级大屏“小程序推送，前提是先找到adb tv的安装包，或者用Projectivy Launcher这个app[spocky/miproja1](https://github.com/spocky/miproja1)，里面有个tools页面会有adb tv的安装包，这个app还有一个功能是打开隐藏设置，但是我试了打不开。然后开了adb让agent连接就可以了，开发者选项页面打开后先不要关，以免连接失败回不来了，然后我让agent写了个小应用，用于直接进入开发者选项页面，这样就不会担心以后不能再访问了，后面就可以照着Aerial的readme继续搞其他的。
+
+<img src="assets\IMG_4646.png" alt="IMG_4646" style="zoom:10%;" />
+
+<img src="assets/IMG_4647.png" alt="IMG_4647" style="zoom:10%;" />
+
+
 
 以下内容基本是部署完成后AI总结的
 
